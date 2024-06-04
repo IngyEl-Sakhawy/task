@@ -1,70 +1,47 @@
-const axios = require('axios');
+const express = require("express");
+const bodyParser = require("body-parser");
+const app = express();
+const port = 3100;
 
-const email = 'ingy.mahmoud.elsakhawy@gmail.com';
-const generateApiKeyUrl = 'https://mytask.enozom.com/BackEnd/api/GenerateAPIKey';
-const getMyTaskUrl = 'https://mytask.enozom.com/BackEnd/api/GetMyTask';
-const submitResultUrl = 'https://mytask.enozom.com/BackEnd/api/SubmitResult';
+app.use(bodyParser.json());
 
-async function getApiKey(email) {
-    try {
-        const response = await axios.post(generateApiKeyUrl, { Email: email }, {
-            headers: { 'Content-Type': 'application/json' }
+app.post("/data/getApiKey", (req, res) => {
+    const { Email } = req.body;
+    if (Email === "ingy.mahmoud.elsakhawy@gmail.com") {
+        res.json({ ApiKey: "sample-api-key-123456" });
+    } else {
+        res.status(400).json({ error: "Invalid email address" });
+    }
+});
+
+app.get("/data/getMyTask", (req, res) => {
+    const apiKey = req.headers["x-api-key"];
+    if (apiKey === "sample-api-key-123456") {
+        res.json({
+            Indexes: "0,1,2,3,7,8,9,10,11",
+            Text: "example_password"
         });
-        return response.data;
-    } catch (error) {
-        console.error('Error generating API key:', error);
+    } else {
+        res.status(401).json({ error: "Invalid API key" });
     }
-}
+});
 
+app.post("/data/submitPassword", (req, res) => {
+    const apiKey = req.headers["x-api-key"];
+    const { Password } = req.body;
 
-async function getTaskDetails(apiKey) {
-    try {
-        const response = await axios.get(getMyTaskUrl, {
-            headers: { 'x-api-key': apiKey }
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error getting task details:', error);
+    if (apiKey === "sample-api-key-123456") {
+        if (Password === "exam_pass") {
+            // Assuming 'exam' is the correct password
+            res.json({ message: "Password submitted successfully!" });
+        } else {
+            res.status(400).json({ error: "Incorrect password" });
+        }
+    } else {
+        res.status(401).json({ error: "Invalid API key" });
     }
-}
+});
 
-
-function extractPassword(indexes, text) {
-    const indexArray = indexes.split(',').map(Number);
-    const password = indexArray.map(index => text[index]).join('');
-    return password;
-}
-
-
-async function submitResult(password) {
-    try {
-        const response = await axios.post(submitResultUrl, { Password: password }, {
-            headers: { 'Content-Type': 'application/json' }
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Error submitting result:', error);
-    }
-}
-
-(async function main() {
-    try {
-        
-        const apiKey = await getApiKey(email);
-        console.log('API Key:', apiKey);
-
-        
-        const taskDetails = await getTaskDetails(apiKey);
-        console.log('Task Details:', taskDetails);
-
-        
-        const password = extractPassword(taskDetails.Indexes, taskDetails.Text);
-        console.log('Password:', password);
-
-        
-        const result = await submitResult(password);
-        console.log('Submission Result:', result);
-    } catch (error) {
-        console.error('Error in main function:', error);
-    }
-})();
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+});
